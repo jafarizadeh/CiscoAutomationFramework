@@ -178,3 +178,74 @@ class BaseEngine(ABC):
 
         
 
+
+class SSHEngine(BaseEngine):
+
+    def __init__(self):
+        super().__init__()
+        self.client = SSHClient()
+        self.client.set_missing_host_key_policy(AutoAddPolicy())
+        self.shell = None
+        self.timeout = 10
+        self._pre_jumphost_hostname = ''
+
+
+    @property
+    def _in_jumphost(self):
+        return self._pre_jumphost_hostname != self.hostname
+    
+
+    def connect_to_server(self, ip, username, password, port):
+        self.client.connect(
+            hostname=ip,
+            port=port,
+            username=username,
+            password=password,
+            timeout=self.timeout
+        )
+        self.shell = self.client.invoke_shell()
+        self.prompt, self.hostname = self._get_prompt_and_hostname()
+        self._pre_jumphost_hostname = self.hostname
+
+    
+    def jumphost(self, ip, password, username=None, port=None, ssh_ver=None, vrf=None):
+        command_string = 'ssh '
+        if username:
+            command_string += f'-l {username} '
+        if port:
+            command_string += f'-p {port} '
+        if ssh_ver:
+            command_string += f'-v {ssh_ver} '
+        if vrf:
+            command_string += f'-vrf {vrf} '
+        command_string += ip
+
+        self.send_command(command_string)
+        sleep(.3)
+        _ = self._get_output(100)
+        self.send_command(password)
+        self.prompt, self.hostname = self._get_prompt_and_hostname()
+
+    
+    def exit_jumphost(self):
+        if self._in_jumphost:
+            self.send_command('exit')
+            self.prompt, self.hostname = self._get_prompt_and_hostname()
+
+
+    def _get_output(self, buffer_size):
+        if self.shell.recv_ready():
+            return bytes.decode(self.shell.recv(buffer_size))
+        return ''
+    
+
+    def _send_command(self, command, end='\n'):
+        self.shell.send(f'{command}{end}')
+
+    def close_connection(self):
+        self.exit_jumphost()
+        self.client.close()
+
+        
+
+        
