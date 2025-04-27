@@ -1,4 +1,2 @@
 from threading import Thread
-from abc import ABC, abstractmethod
-
-class SSH()
+from CiscoAutomationFramework import connect_ssh
