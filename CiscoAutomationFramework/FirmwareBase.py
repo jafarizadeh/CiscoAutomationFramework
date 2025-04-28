@@ -22,14 +22,14 @@ class CiscoFirmware(ABC):
     
     def cli_to_config_mode(self) -> bool:
         if self.transport.in_user_exec_mode:
-            self.cli_to_privilaged_exec_mode()
+            self.cli_to_privileged_exec_mode()
 
         if self.transport.in_privileged_exec_mode:
             self.transport.send_command_get_output('config t')
         
         return self.transport.in_configuration_mode
     
-    def cli_to_privilaged_exec_mode(self) -> bool:
+    def cli_to_privileged_exec_mode(self) -> bool:
         if self.transport.in_privileged_exec_mode:
             return True
         if self.transport.in_configuration_mode:
